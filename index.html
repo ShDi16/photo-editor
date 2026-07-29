@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Photo Editor — Simple Online</title>
+  <meta name="description" content="Free online photo editor for selfies and marketplace products. Crop, remove background, brightness, contrast. No registration.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="header-top">
+      <h1 data-i18n="title">Редактор фото</h1>
+      <div class="lang-switch">
+        <button id="langRU" class="active">RU</button>
+        <button id="langEN">EN</button>
+      </div>
+    </div>
+    <p data-i18n="subtitle">Для селфи и карточек товаров. Всё прямо в браузере.</p>
+  </header>
+
+  <main>
+    <div class="upload-zone" id="dropZone">
+      <input type="file" id="fileInput" accept="image/*" hidden>
+      <button id="uploadBtn" data-i18n="upload">Выбрать фото</button>
+      <p data-i18n="drop">или перетащи сюда</p>
+    </div>
+
+    <div class="editor" id="editor" hidden>
+      <div class="canvas-wrap">
+        <canvas id="canvas"></canvas>
+        <div id="cropOverlay" class="crop-overlay" hidden></div>
+      </div>
+
+      <div class="controls">
+        <div class="sliders">
+          <label>
+            <span data-i18n="brightness">Яркость</span>
+            <input type="range" id="brightness" min="-100" max="100" value="0">
+          </label>
+          <label>
+            <span data-i18n="contrast">Контраст</span>
+            <input type="range" id="contrast" min="-100" max="100" value="0">
+          </label>
+        </div>
+
+        <div class="buttons">
+          <button id="cropBtn" data-i18n="crop">Обрезать</button>
+          <button id="applyCropBtn" hidden data-i18n="applyCrop">Применить обрезку</button>
+          <button id="cancelCropBtn" hidden data-i18n="cancel">Отмена</button>
+          <button id="bgRemoveBtn" data-i18n="removeBg">Удалить фон</button>
+          <button id="resetBtn" data-i18n="reset">Сбросить</button>
+          <button id="downloadBtn" class="primary" data-i18n="download">Скачать</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="ad-slot-bottom" class="ad-slot"></div>
+
+  <script type="module" src="app.js"></script>
+  <script src="ads.js" defer></script>
+</body>
+</html>
