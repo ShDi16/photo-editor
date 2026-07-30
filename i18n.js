@@ -14,6 +14,7 @@ export const translations = {
     download: "Скачать",
     processing: "Обрабатываем…",
     bgDone: "Фон удалён"
+    newPhoto: "Новое фото"
   },
   en: {
     title: "Photo Editor",
@@ -30,5 +31,6 @@ export const translations = {
     download: "Download",
     processing: "Processing…",
     bgDone: "Background removed"
+   newPhoto: "New photo",
   }
 };

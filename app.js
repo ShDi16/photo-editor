@@ -32,6 +32,7 @@ const cancelCropBtn = document.getElementById('cancelCropBtn');
 const bgRemoveBtn = document.getElementById('bgRemoveBtn');
 const resetBtn = document.getElementById('resetBtn');
 const downloadBtn = document.getElementById('downloadBtn');
+const newPhotoBtn = document.getElementById('newPhotoBtn');
 
 let originalImage = null;
 let baseImageData = null;
@@ -226,4 +227,12 @@ downloadBtn.onclick = () => {
   link.download = 'edited-photo.png';
   link.href = canvas.toDataURL('image/png');
   link.click();
+newPhotoBtn.onclick = () => {
+  editor.hidden = true;          // скрываем редактор
+  dropZone.hidden = false;       // показываем зону загрузки
+  originalImage = null;
+  baseImageData = null;
+  endCropMode();                 // выключаем режим обрезки
+  resetSliders();                // сбрасываем ползунки
+  fileInput.value = '';          // очищаем выбранный файл
 };
