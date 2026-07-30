@@ -227,12 +227,14 @@ downloadBtn.onclick = () => {
   link.download = 'edited-photo.png';
   link.href = canvas.toDataURL('image/png');
   link.click();
+};
+
 newPhotoBtn.onclick = () => {
-  editor.hidden = true;          // скрываем редактор
-  dropZone.hidden = false;       // показываем зону загрузки
+  editor.hidden = true;
+  dropZone.hidden = false;
   originalImage = null;
   baseImageData = null;
-  endCropMode();                 // выключаем режим обрезки
-  resetSliders();                // сбрасываем ползунки
-  fileInput.value = '';          // очищаем выбранный файл
+  endCropMode();
+  resetSliders();
+  fileInput.value = '';
 };
