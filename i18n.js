@@ -13,7 +13,7 @@ export const translations = {
     reset: "Сбросить",
     download: "Скачать",
     processing: "Обрабатываем…",
-    bgDone: "Фон удалён"
+    bgDone: "Фон удалён",
     newPhoto: "Новое фото"
   },
   en: {
@@ -30,7 +30,7 @@ export const translations = {
     reset: "Reset",
     download: "Download",
     processing: "Processing…",
-    bgDone: "Background removed"
-   newPhoto: "New photo",
+    bgDone: "Background removed",
+    newPhoto: "New photo"
   }
 };
