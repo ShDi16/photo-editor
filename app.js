@@ -90,7 +90,7 @@ function applyFilters() {
     r = factor * (r - 128) + 128;
     g = factor * (g - 128) + 128;
     bl = factor * (bl - 128) + 128;
-    data.data[i]     = Math.max(0, Math.min(255, r));
+    data.data[i] = Math.max(0, Math.min(255, r));
     data.data[i + 1] = Math.max(0, Math.min(255, g));
     data.data[i + 2] = Math.max(0, Math.min(255, bl));
   }
