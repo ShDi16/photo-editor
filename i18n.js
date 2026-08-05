@@ -10,10 +10,12 @@ export const translations = {
     applyCrop: "Применить обрезку",
     cancel: "Отмена",
     removeBg: "Удалить фон",
+    enhance: "Улучшить фото",
     reset: "Сбросить",
     download: "Скачать",
     processing: "Обрабатываем…",
     bgDone: "Фон удалён",
+    enhanceDone: "Фото улучшено",
     newPhoto: "Новое фото"
   },
   en: {
@@ -27,10 +29,12 @@ export const translations = {
     applyCrop: "Apply crop",
     cancel: "Cancel",
     removeBg: "Remove background",
+    enhance: "Enhance photo",
     reset: "Reset",
     download: "Download",
     processing: "Processing…",
     bgDone: "Background removed",
+    enhanceDone: "Photo enhanced",
     newPhoto: "New photo"
   }
 };
