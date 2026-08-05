@@ -419,6 +419,3 @@ const ratio11 = document.getElementById('ratio11');
 const ratio34 = document.getElementById('ratio34');
 const ratio45 = document.getElementById('ratio45');
 
-if (ratio11) ratio11.onclick = () => cropToRatio(1, 1);
-if (ratio34) ratio34.onclick = () => cropToRatio(3, 4);
-if (ratio45) ratio45.onclick = () => cropToRatio(4, 5);
