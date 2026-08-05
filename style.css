@@ -152,3 +152,15 @@ button.primary {
   max-width: 728px;
   text-align: center;
 }
+
+.ratio-btn {
+  background: #f3f4f6;
+  color: #1f2937;
+  border: 1px solid #d1d5db;
+  font-weight: 600;
+  min-width: 52px;
+}
+
+.ratio-btn:hover {
+  background: #e5e7eb;
+}
