@@ -38,6 +38,9 @@ const enhanceBtn = document.getElementById('enhanceBtn');
 const resetBtn = document.getElementById('resetBtn');
 const downloadBtn = document.getElementById('downloadBtn');
 const newPhotoBtn = document.getElementById('newPhotoBtn');
+const ratio11 = document.getElementById('ratio11');
+const ratio34 = document.getElementById('ratio34');
+const ratio45 = document.getElementById('ratio45');
 
 let originalImage = null;
 let baseImageData = null;
