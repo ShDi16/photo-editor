@@ -344,44 +344,6 @@ if (newPhotoBtn) {
 
 // ========== Пресеты соотношения сторон ==========
 function cropToRatio(ratioW, ratioH) {
-  if (!baseImageData || !canvas || !ctx) return;
-
-  const imgW = canvas.width;
-  const imgH = canvas.height;
-  const targetRatio = ratioW / ratioH;
-  const currentRatio = imgW / imgH;
-
-  let newW, newH, startX, startY;
-
-  if (currentRatio > targetRatio) {
-    // Фото слишком широкое — обрезаем по бокам
-    newH = imgH;
-    newW = Math.round(imgH * targetRatio);
-    startX = Math.round((imgW - newW) / 2);
-    startY = 0;
-  } else {
-    // Фото слишком высокое — обрезаем сверху и снизу
-    newW = imgW;
-    newH = Math.round(imgW / targetRatio);
-    startX = 0;
-    startY = Math.round((imgH - newH) / 2);
-  }
-
-  const cropped = ctx.getImageData(startX, startY, newW, newH);
-  canvas.width = newW;
-  canvas.height = newH;
-  ctx.putImageData(cropped, 0, 0);
-  baseImageData = ctx.getImageData(0, 0, newW, newH);
-  resetSliders();
-  endCropMode();
-}
-
-if (ratio11) ratio11.onclick = () => cropToRatio(1, 1);
-if (ratio34) ratio34.onclick = () => cropToRatio(3, 4);
-if (ratio45) ratio45.onclick = () => cropToRatio(4, 5);
-
-// ========== Пресеты соотношения сторон ==========
-function cropToRatio(ratioW, ratioH) {
   if (!baseImageData || !canvas || !ctx) {
     console.log('Нет изображения для обрезки');
     return;
@@ -415,7 +377,6 @@ function cropToRatio(ratioW, ratioH) {
   endCropMode();
 }
 
-const ratio11 = document.getElementById('ratio11');
-const ratio34 = document.getElementById('ratio34');
-const ratio45 = document.getElementById('ratio45');
-
+if (ratio11) ratio11.onclick = () => cropToRatio(1, 1);
+if (ratio34) ratio34.onclick = () => cropToRatio(3, 4);
+if (ratio45) ratio45.onclick = () => cropToRatio(4, 5);
