@@ -147,16 +147,17 @@ button.primary {
 }
 
 .ad-slot {
-  display: block;
-  min-height: 250px;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  min-height: 250px !important;
   min-width: 300px;
   width: 100%;
   max-width: 728px;
   margin: 2.5rem auto;
   text-align: center;
-  overflow: visible;
-  visibility: visible;
-  opacity: 1;
+  background: #f9fafb;
+  overflow: visible !important;
 }
 
 .ratio-btn {
