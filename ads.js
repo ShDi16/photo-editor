@@ -3,7 +3,7 @@ window.addEventListener('load', () => {
     w[n] = w[n] || [];
     w[n].push(function() {
       Ya.Context.AdvManager.render({
-        blockId: 'R-A-19741270-1',   //
+        blockId: 'R-A-19741270-1',
         renderTo: 'ad-slot-bottom',
         async: true
       });
