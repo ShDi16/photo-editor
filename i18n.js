@@ -17,6 +17,10 @@ export const translations = {
     bgDone: "Фон удалён",
     enhanceDone: "Фото улучшено",
     newPhoto: "Новое фото"
+    loadingModel: "Загрузка модели…",
+    processing: "Обрабатываем…",
+    bgDone: "Фон удалён",
+    bgError: "Не удалось удалить фон. Попробуйте другое фото или обновите страницу.",
   },
   en: {
     title: "Photo Editor",
@@ -36,5 +40,9 @@ export const translations = {
     bgDone: "Background removed",
     enhanceDone: "Photo enhanced",
     newPhoto: "New photo"
+    loadingModel: "Loading model…",
+    processing: "Processing…",
+    bgDone: "Background removed",
+    bgError: "Could not remove background. Try another photo or refresh the page.",
   }
 };
