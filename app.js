@@ -195,6 +195,59 @@ if (bgRemoveBtn) {
     bgRemoveBtn.textContent = t('loadingModel') || 'Загрузка модели…';
 
     try {
+      const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.4.0');
+      env.allowLocalModels = false;
+      env.useBrowserCache = false;
+      env.allowRemoteModels = true;
+
+      bgRemoveBtn.textContent = t('processing') || 'Обрабатываем…';
+
+      // Правильный пайплайн для удаления фона
+      const remover = await pipeline('background-removal', 'Xenova/modnet', {
+        device: 'wasm'
+      });
+
+      const dataUrl = canvas.toDataURL('image/png');
+      const output = await remover(dataUrl);
+
+      // output[0] — картинка без фона
+      let blob;
+      if (output[0].toBlob) {
+        blob = await output[0].toBlob();
+      } else if (output[0].save) {
+        // запасной вариант
+        throw new Error('Формат результата не поддерживается в этой версии');
+      } else {
+        throw new Error('Пустой результат');
+      }
+
+      const img = new Image();
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        baseImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        resetSliders();
+
+        bgRemoveBtn.textContent = t('bgDone') || 'Фон удалён';
+        setTimeout(() => {
+          bgRemoveBtn.textContent = t('removeBg') || 'Удалить фон';
+          bgRemoveBtn.disabled = false;
+        }, 1500);
+      };
+      img.src = URL.createObjectURL(blob);
+
+    } catch (err) {
+      console.error('Background removal error:', err);
+      alert(t('bgError') || 'Не удалось удалить фон. Попробуйте другое фото или обновите страницу.');
+      bgRemoveBtn.textContent = t('removeBg') || 'Удалить фон';
+      bgRemoveBtn.disabled = false;
+    }
+  };
+}
+
+    try {
       const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0');
       env.allowLocalModels = false;
       env.useBrowserCache = false;
