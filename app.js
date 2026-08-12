@@ -197,7 +197,8 @@ if (bgRemoveBtn) {
     try {
       const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0');
       env.allowLocalModels = false;
-      env.useBrowserCache = true;
+      env.useBrowserCache = false;
+      env.allowRemoteModels = true;
 
       bgRemoveBtn.textContent = t('processing') || 'Обрабатываем…';
 
