@@ -1,7 +1,7 @@
 export const translations = {
   ru: {
     title: "Редактор фото",
-    subtitle: "Для селфи и карточек товаров. Всё прямо в браузере.",
+    subtitle: "Бесплатный онлайн-редактор фото для маркетплейсов и соцсетей. Обрезка, улучшение качества, яркость и контраст — без регистрации и установки программ.",
     upload: "Выбрать фото",
     drop: "или перетащи сюда",
     brightness: "Яркость",
@@ -20,7 +20,7 @@ export const translations = {
   },
   en: {
     title: "Photo Editor",
-    subtitle: "For selfies and marketplace products. Everything in the browser.",
+    subtitle: "Free online photo editor for marketplaces and social media. Crop, enhance, brightness and contrast — no registration or installation required.",
     upload: "Choose photo",
     drop: "or drag & drop here",
     brightness: "Brightness",
