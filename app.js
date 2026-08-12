@@ -202,7 +202,6 @@ if (bgRemoveBtn) {
 
       bgRemoveBtn.textContent = t('processing') || 'Обрабатываем…';
 
-      // Правильный пайплайн для удаления фона
       const remover = await pipeline('background-removal', 'Xenova/modnet', {
         device: 'wasm'
       });
@@ -210,15 +209,11 @@ if (bgRemoveBtn) {
       const dataUrl = canvas.toDataURL('image/png');
       const output = await remover(dataUrl);
 
-      // output[0] — картинка без фона
       let blob;
-      if (output[0].toBlob) {
+      if (output[0] && output[0].toBlob) {
         blob = await output[0].toBlob();
-      } else if (output[0].save) {
-        // запасной вариант
-        throw new Error('Формат результата не поддерживается в этой версии');
       } else {
-        throw new Error('Пустой результат');
+        throw new Error('Не удалось получить результат');
       }
 
       const img = new Image();
@@ -238,61 +233,6 @@ if (bgRemoveBtn) {
       };
       img.src = URL.createObjectURL(blob);
 
-    } catch (err) {
-      console.error('Background removal error:', err);
-      alert(t('bgError') || 'Не удалось удалить фон. Попробуйте другое фото или обновите страницу.');
-      bgRemoveBtn.textContent = t('removeBg') || 'Удалить фон';
-      bgRemoveBtn.disabled = false;
-    }
-  };
-}
-
-    try {
-      const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0');
-      env.allowLocalModels = false;
-      env.useBrowserCache = false;
-      env.allowRemoteModels = true;
-
-      bgRemoveBtn.textContent = t('processing') || 'Обрабатываем…';
-
-      const segmenter = await pipeline('image-segmentation', 'Xenova/modnet', { device: 'wasm' });
-      const dataUrl = canvas.toDataURL('image/png');
-      const result = await segmenter(dataUrl);
-
-      if (!result || !result[0] || !result[0].mask) {
-        throw new Error('Маска не получена');
-      }
-
-      const mask = result[0].mask;
-      const out = ctx.createImageData(canvas.width, canvas.height);
-      const src = baseImageData.data;
-      const maskData = mask.data;
-      const scaleX = mask.width / canvas.width;
-      const scaleY = mask.height / canvas.height;
-
-      for (let y = 0; y < canvas.height; y++) {
-        for (let x = 0; x < canvas.width; x++) {
-          const i = (y * canvas.width + x) * 4;
-          const mx = Math.min(mask.width - 1, Math.floor(x * scaleX));
-          const my = Math.min(mask.height - 1, Math.floor(y * scaleY));
-          const mi = my * mask.width + mx;
-          const alpha = maskData[mi] > 0.5 ? 255 : 0;
-          out.data[i] = src[i];
-          out.data[i + 1] = src[i + 1];
-          out.data[i + 2] = src[i + 2];
-          out.data[i + 3] = alpha;
-        }
-      }
-
-      ctx.putImageData(out, 0, 0);
-      baseImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      resetSliders();
-
-      bgRemoveBtn.textContent = t('bgDone') || 'Фон удалён';
-      setTimeout(() => {
-        bgRemoveBtn.textContent = t('removeBg') || 'Удалить фон';
-        bgRemoveBtn.disabled = false;
-      }, 1500);
     } catch (err) {
       console.error('Background removal error:', err);
       alert(t('bgError') || 'Не удалось удалить фон. Попробуйте другое фото или обновите страницу.');
