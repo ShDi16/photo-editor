@@ -41,12 +41,18 @@ const newPhotoBtn = document.getElementById('newPhotoBtn');
 const ratio11 = document.getElementById('ratio11');
 const ratio34 = document.getElementById('ratio34');
 const ratio45 = document.getElementById('ratio45');
+const bgLightBtn = document.getElementById('bgLightBtn');
+const bgDarkBtn = document.getElementById('bgDarkBtn');
+const canvasWrap = document.querySelector('.canvas-wrap');
 
 let originalImage = null;
 let baseImageData = null;
 let isCropping = false;
-let cropStart = null;
-let cropRect = null;
+let cropRect = null; // {x, y, w, h} в координатах canvas
+let activeRatio = null; // {w, h} или null
+let dragMode = null; // 'draw' | 'move'
+let dragStart = null;
+let rectStart = null;
 
 if (uploadBtn && fileInput) {
   uploadBtn.onclick = () => fileInput.click();
@@ -83,6 +89,7 @@ function loadFile(file) {
       if (editor) editor.hidden = false;
       if (dropZone) dropZone.hidden = true;
       resetSliders();
+      endCropMode();
     };
     img.src = e.target.result;
   };
@@ -117,128 +124,175 @@ function resetSliders() {
   if (contrast) contrast.value = 0;
 }
 
-if (cropBtn) {
-  cropBtn.onclick = () => {
-    isCropping = true;
-    if (cropOverlay) cropOverlay.hidden = false;
-    cropBtn.hidden = true;
-    if (applyCropBtn) applyCropBtn.hidden = false;
-    if (cancelCropBtn) cancelCropBtn.hidden = false;
-    cropRect = null;
-    if (cropOverlay) cropOverlay.style.cssText = '';
+function getCanvasPoint(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  return {
+    x: Math.max(0, Math.min(canvas.width, (e.clientX - rect.left) * scaleX)),
+    y: Math.max(0, Math.min(canvas.height, (e.clientY - rect.top) * scaleY)),
+    scaleX,
+    scaleY,
+    rect
   };
+}
+
+function updateOverlay() {
+  if (!cropOverlay || !cropRect) return;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  cropOverlay.hidden = false;
+  cropOverlay.style.left = (cropRect.x / scaleX) + 'px';
+  cropOverlay.style.top = (cropRect.y / scaleY) + 'px';
+  cropOverlay.style.width = (cropRect.w / scaleX) + 'px';
+  cropOverlay.style.height = (cropRect.h / scaleY) + 'px';
+}
+
+function startCropMode(ratio = null) {
+  if (!canvas) return;
+  isCropping = true;
+  activeRatio = ratio;
+  cropBtn.hidden = true;
+  if (applyCropBtn) applyCropBtn.hidden = false;
+  if (cancelCropBtn) cancelCropBtn.hidden = false;
+
+  // стартовая рамка по центру
+  const target = ratio ? ratio.w / ratio.h : 1;
+  let w, h;
+  if (!ratio) {
+    w = Math.round(canvas.width * 0.7);
+    h = Math.round(canvas.height * 0.7);
+  } else if (canvas.width / canvas.height > target) {
+    h = Math.round(canvas.height * 0.8);
+    w = Math.round(h * target);
+  } else {
+    w = Math.round(canvas.width * 0.8);
+    h = Math.round(w / target);
+  }
+  cropRect = {
+    x: Math.round((canvas.width - w) / 2),
+    y: Math.round((canvas.height - h) / 2),
+    w,
+    h
+  };
+  updateOverlay();
 }
 
 function endCropMode() {
   isCropping = false;
-  if (cropOverlay) cropOverlay.hidden = true;
+  activeRatio = null;
+  dragMode = null;
+  cropRect = null;
+  if (cropOverlay) {
+    cropOverlay.hidden = true;
+    cropOverlay.style.cssText = '';
+  }
   if (cropBtn) cropBtn.hidden = false;
   if (applyCropBtn) applyCropBtn.hidden = true;
   if (cancelCropBtn) cancelCropBtn.hidden = true;
 }
 
+if (cropBtn) cropBtn.onclick = () => startCropMode(null);
 if (cancelCropBtn) cancelCropBtn.onclick = endCropMode;
 
-if (canvas) {
-  canvas.addEventListener('mousedown', e => {
-    if (!isCropping) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    cropStart = {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY
-    };
-  });
-
-  canvas.addEventListener('mousemove', e => {
-    if (!isCropping || !cropStart) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
-    const left = Math.min(cropStart.x, x);
-    const top = Math.min(cropStart.y, y);
-    const width = Math.abs(x - cropStart.x);
-    const height = Math.abs(y - cropStart.y);
-    cropRect = { left, top, width, height };
-    if (cropOverlay) {
-      cropOverlay.style.left = (left / scaleX) + 'px';
-      cropOverlay.style.top = (top / scaleY) + 'px';
-      cropOverlay.style.width = (width / scaleX) + 'px';
-      cropOverlay.style.height = (height / scaleY) + 'px';
-    }
-  });
-
-  canvas.addEventListener('mouseup', () => { cropStart = null; });
-}
+if (ratio11) ratio11.onclick = () => startCropMode({ w: 1, h: 1 });
+if (ratio34) ratio34.onclick = () => startCropMode({ w: 3, h: 4 });
+if (ratio45) ratio45.onclick = () => startCropMode({ w: 4, h: 5 });
 
 if (applyCropBtn) {
   applyCropBtn.onclick = () => {
-    if (!cropRect || cropRect.width < 10 || !ctx) return;
-    const { left, top, width, height } = cropRect;
-    const cropped = ctx.getImageData(left, top, width, height);
-    canvas.width = width;
-    canvas.height = height;
+    if (!cropRect || cropRect.w < 10 || cropRect.h < 10 || !ctx) return;
+    const { x, y, w, h } = cropRect;
+    const cropped = ctx.getImageData(x, y, w, h);
+    canvas.width = w;
+    canvas.height = h;
     ctx.putImageData(cropped, 0, 0);
-    baseImageData = ctx.getImageData(0, 0, width, height);
+    baseImageData = ctx.getImageData(0, 0, w, h);
     endCropMode();
     resetSliders();
   };
 }
 
-if (bgRemoveBtn) {
-  bgRemoveBtn.onclick = async () => {
-    if (!baseImageData || !canvas || !ctx) return;
-    bgRemoveBtn.disabled = true;
-    bgRemoveBtn.textContent = t('loadingModel') || 'Загрузка модели…';
+if (canvas) {
+  canvas.addEventListener('mousedown', e => {
+    if (!isCropping) return;
+    const p = getCanvasPoint(e);
 
-    try {
-      const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.4.0');
-      env.allowLocalModels = false;
-      env.useBrowserCache = false;
-      env.allowRemoteModels = true;
-
-      bgRemoveBtn.textContent = t('processing') || 'Обрабатываем…';
-
-      const remover = await pipeline('background-removal', 'Xenova/modnet', {
-        device: 'wasm'
-      });
-
-      const dataUrl = canvas.toDataURL('image/png');
-      const output = await remover(dataUrl);
-
-      let blob;
-      if (output[0] && output[0].toBlob) {
-        blob = await output[0].toBlob();
-      } else {
-        throw new Error('Не удалось получить результат');
-      }
-
-      const img = new Image();
-      img.onload = () => {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
-        baseImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        resetSliders();
-
-        bgRemoveBtn.textContent = t('bgDone') || 'Фон удалён';
-        setTimeout(() => {
-          bgRemoveBtn.textContent = t('removeBg') || 'Удалить фон';
-          bgRemoveBtn.disabled = false;
-        }, 1500);
-      };
-      img.src = URL.createObjectURL(blob);
-
-    } catch (err) {
-      console.error('Background removal error:', err);
-      alert(t('bgError') || 'Не удалось удалить фон. Попробуйте другое фото или обновите страницу.');
-      bgRemoveBtn.textContent = t('removeBg') || 'Удалить фон';
-      bgRemoveBtn.disabled = false;
+    // если клик внутри рамки — двигаем, иначе рисуем новую
+    if (cropRect &&
+        p.x >= cropRect.x && p.x <= cropRect.x + cropRect.w &&
+        p.y >= cropRect.y && p.y <= cropRect.y + cropRect.h) {
+      dragMode = 'move';
+      dragStart = { x: p.x, y: p.y };
+      rectStart = { ...cropRect };
+    } else if (!activeRatio) {
+      dragMode = 'draw';
+      dragStart = { x: p.x, y: p.y };
+      cropRect = { x: p.x, y: p.y, w: 1, h: 1 };
+      updateOverlay();
+    } else {
+      // при фиксированном ratio клик вне рамки тоже двигает
+      dragMode = 'move';
+      dragStart = { x: p.x, y: p.y };
+      rectStart = { ...cropRect };
     }
+  });
+
+  window.addEventListener('mousemove', e => {
+    if (!isCropping || !dragMode || !dragStart) return;
+    const p = getCanvasPoint(e);
+
+    if (dragMode === 'draw') {
+      const x1 = dragStart.x;
+      const y1 = dragStart.y;
+      const x2 = p.x;
+      const y2 = p.y;
+      cropRect = {
+        x: Math.min(x1, x2),
+        y: Math.min(y1, y2),
+        w: Math.abs(x2 - x1),
+        h: Math.abs(y2 - y1)
+      };
+      updateOverlay();
+    }
+
+    if (dragMode === 'move' && rectStart) {
+      let nx = rectStart.x + (p.x - dragStart.x);
+      let ny = rectStart.y + (p.y - dragStart.y);
+      nx = Math.max(0, Math.min(canvas.width - rectStart.w, nx));
+      ny = Math.max(0, Math.min(canvas.height - rectStart.h, ny));
+      cropRect = { x: nx, y: ny, w: rectStart.w, h: rectStart.h };
+      updateOverlay();
+    }
+  });
+
+  window.addEventListener('mouseup', () => {
+    dragMode = null;
+    dragStart = null;
+    rectStart = null;
+  });
+}
+
+// ===== Фон =====
+if (bgLightBtn && canvasWrap) {
+  bgLightBtn.onclick = () => {
+    canvasWrap.classList.add('bg-light');
+    canvasWrap.classList.remove('bg-dark');
+  };
+}
+if (bgDarkBtn && canvasWrap) {
+  bgDarkBtn.onclick = () => {
+    canvasWrap.classList.add('bg-dark');
+    canvasWrap.classList.remove('bg-light');
+  };
+}
+
+if (bgRemoveBtn) {
+  bgRemoveBtn.onclick = () => {
+    alert(currentLang === 'ru'
+      ? 'Удаление фона временно в разработке. Скоро вернём.'
+      : 'Background removal is temporarily unavailable.');
   };
 }
 
@@ -272,7 +326,6 @@ if (enhanceBtn) {
     ctx.putImageData(data, 0, 0);
     baseImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     resetSliders();
-
     enhanceBtn.textContent = t('enhanceDone') || 'Фото улучшено';
     setTimeout(() => {
       enhanceBtn.textContent = t('enhance') || 'Улучшить фото';
@@ -320,34 +373,3 @@ if (newPhotoBtn) {
     if (fileInput) fileInput.value = '';
   };
 }
-
-function cropToRatio(ratioW, ratioH) {
-  if (!baseImageData || !canvas || !ctx) return;
-  const imgW = canvas.width;
-  const imgH = canvas.height;
-  const targetRatio = ratioW / ratioH;
-  const currentRatio = imgW / imgH;
-  let newW, newH, startX, startY;
-  if (currentRatio > targetRatio) {
-    newH = imgH;
-    newW = Math.round(imgH * targetRatio);
-    startX = Math.round((imgW - newW) / 2);
-    startY = 0;
-  } else {
-    newW = imgW;
-    newH = Math.round(imgW / targetRatio);
-    startX = 0;
-    startY = Math.round((imgH - newH) / 2);
-  }
-  const cropped = ctx.getImageData(startX, startY, newW, newH);
-  canvas.width = newW;
-  canvas.height = newH;
-  ctx.putImageData(cropped, 0, 0);
-  baseImageData = ctx.getImageData(0, 0, newW, newH);
-  resetSliders();
-  endCropMode();
-}
-
-if (ratio11) ratio11.onclick = () => cropToRatio(1, 1);
-if (ratio34) ratio34.onclick = () => cropToRatio(3, 4);
-if (ratio45) ratio45.onclick = () => cropToRatio(4, 5);
