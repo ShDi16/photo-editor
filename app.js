@@ -41,19 +41,16 @@ const newPhotoBtn = document.getElementById('newPhotoBtn');
 const ratio11 = document.getElementById('ratio11');
 const ratio34 = document.getElementById('ratio34');
 const ratio45 = document.getElementById('ratio45');
-const bgLightBtn = document.getElementById('bgLightBtn');
-const bgDarkBtn = document.getElementById('bgDarkBtn');
 const circleBtn = document.getElementById('circleBtn');
 const roundBtn = document.getElementById('roundBtn');
-const canvasWrap = document.querySelector('.canvas-wrap');
 
 let originalImage = null;
 let baseImageData = null;
-let padColor = '#0a0c10';
 
 let isCropping = false;
-let cropRect = null;
-let dragMode = null;
+let activeRatio = null; // {w,h} or null
+let cropRect = null;    // {x,y,w,h} in canvas pixels
+let dragMode = null;    // 'draw' | 'move'
 let dragStart = null;
 let rectStart = null;
 
@@ -80,7 +77,8 @@ function loadFile(file) {
     img.onload = () => {
       originalImage = img;
       const max = 1200;
-      let w = img.width, h = img.height;
+      let w = img.width;
+      let h = img.height;
       if (w > max || h > max) {
         if (w > h) { h = Math.round(h * max / w); w = max; }
         else { w = Math.round(w * max / h); h = max; }
@@ -101,22 +99,25 @@ function loadFile(file) {
 
 function applyFilters() {
   if (!baseImageData || !ctx) return;
-  const data = new ImageData(new Uint8ClampedArray(baseImageData.data), baseImageData.width, baseImageData.height);
+  const src = baseImageData.data;
+  const out = new Uint8ClampedArray(src.length);
   const b = +brightness.value;
   const c = +contrast.value;
   const factor = (259 * (c + 255)) / (255 * (259 - c));
-  for (let i = 0; i < data.data.length; i += 4) {
-    let r = data.data[i] + b;
-    let g = data.data[i + 1] + b;
-    let bl = data.data[i + 2] + b;
+
+  for (let i = 0; i < src.length; i += 4) {
+    let r = src[i] + b;
+    let g = src[i + 1] + b;
+    let bl = src[i + 2] + b;
     r = factor * (r - 128) + 128;
     g = factor * (g - 128) + 128;
     bl = factor * (bl - 128) + 128;
-    data.data[i] = Math.max(0, Math.min(255, r));
-    data.data[i + 1] = Math.max(0, Math.min(255, g));
-    data.data[i + 2] = Math.max(0, Math.min(255, bl));
+    out[i] = r < 0 ? 0 : r > 255 ? 255 : r;
+    out[i + 1] = g < 0 ? 0 : g > 255 ? 255 : g;
+    out[i + 2] = bl < 0 ? 0 : bl > 255 ? 255 : bl;
+    out[i + 3] = src[i + 3];
   }
-  ctx.putImageData(data, 0, 0);
+  ctx.putImageData(new ImageData(out, baseImageData.width, baseImageData.height), 0, 0);
 }
 if (brightness) brightness.oninput = applyFilters;
 if (contrast) contrast.oninput = applyFilters;
@@ -136,7 +137,7 @@ function getCanvasPoint(e) {
   };
 }
 
-function clampCropRect(r) {
+function clampRect(r) {
   let w = Math.max(10, r.w);
   let h = Math.max(10, r.h);
   if (w > canvas.width) w = canvas.width;
@@ -158,26 +159,50 @@ function updateOverlay() {
   cropOverlay.style.height = (cropRect.h / scaleY) + 'px';
 }
 
-function startCropMode() {
-  if (!canvas) return;
-  isCropping = true;
-  if (cropBtn) cropBtn.hidden = true;
-  if (applyCropBtn) applyCropBtn.hidden = false;
-  if (cancelCropBtn) cancelCropBtn.hidden = false;
-
-  const w = Math.round(canvas.width * 0.7);
-  const h = Math.round(canvas.height * 0.7);
-  cropRect = clampCropRect({
+function makeRatioRect(ratioW, ratioH) {
+  const target = ratioW / ratioH;
+  const imgRatio = canvas.width / canvas.height;
+  let w, h;
+  if (imgRatio > target) {
+    // image wider -> fit by height
+    h = canvas.height;
+    w = Math.round(h * target);
+  } else {
+    w = canvas.width;
+    h = Math.round(w / target);
+  }
+  return clampRect({
     x: Math.round((canvas.width - w) / 2),
     y: Math.round((canvas.height - h) / 2),
     w,
     h
   });
+}
+
+function startCropMode(ratio = null) {
+  if (!canvas || !baseImageData) return;
+  isCropping = true;
+  activeRatio = ratio;
+  if (cropBtn) cropBtn.hidden = true;
+  if (applyCropBtn) applyCropBtn.hidden = false;
+  if (cancelCropBtn) cancelCropBtn.hidden = false;
+
+  if (ratio) {
+    cropRect = makeRatioRect(ratio.w, ratio.h);
+  } else {
+    cropRect = clampRect({
+      x: Math.round(canvas.width * 0.15),
+      y: Math.round(canvas.height * 0.15),
+      w: Math.round(canvas.width * 0.7),
+      h: Math.round(canvas.height * 0.7)
+    });
+  }
   updateOverlay();
 }
 
 function endCropMode() {
   isCropping = false;
+  activeRatio = null;
   dragMode = null;
   dragStart = null;
   rectStart = null;
@@ -194,24 +219,31 @@ function endCropMode() {
   if (cancelCropBtn) cancelCropBtn.hidden = true;
 }
 
-if (cropBtn) cropBtn.onclick = startCropMode;
+if (cropBtn) cropBtn.onclick = () => startCropMode(null);
 if (cancelCropBtn) cancelCropBtn.onclick = endCropMode;
+if (ratio11) ratio11.onclick = () => startCropMode({ w: 1, h: 1 });
+if (ratio34) ratio34.onclick = () => startCropMode({ w: 3, h: 4 });
+if (ratio45) ratio45.onclick = () => startCropMode({ w: 4, h: 5 });
 
 if (applyCropBtn) {
   applyCropBtn.onclick = () => {
     if (!cropRect || !ctx) return;
-    const r = clampCropRect(cropRect);
-    const cropped = ctx.getImageData(Math.round(r.x), Math.round(r.y), Math.round(r.w), Math.round(r.h));
-    canvas.width = Math.round(r.w);
-    canvas.height = Math.round(r.h);
+    const r = clampRect(cropRect);
+    const x = Math.round(r.x);
+    const y = Math.round(r.y);
+    const w = Math.round(r.w);
+    const h = Math.round(r.h);
+    const cropped = ctx.getImageData(x, y, w, h);
+    canvas.width = w;
+    canvas.height = h;
     ctx.putImageData(cropped, 0, 0);
-    baseImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    baseImageData = ctx.getImageData(0, 0, w, h);
     endCropMode();
     resetSliders();
   };
 }
 
-function onCropPointerDown(e) {
+function onPointerDown(e) {
   if (!isCropping || !canvas) return;
   e.preventDefault();
   const p = getCanvasPoint(e);
@@ -219,7 +251,7 @@ function onCropPointerDown(e) {
     p.x >= cropRect.x && p.x <= cropRect.x + cropRect.w &&
     p.y >= cropRect.y && p.y <= cropRect.y + cropRect.h;
 
-  if (inside) {
+  if (inside || activeRatio) {
     dragMode = 'move';
     dragStart = { x: p.x, y: p.y };
     rectStart = { ...cropRect };
@@ -231,12 +263,12 @@ function onCropPointerDown(e) {
   }
 }
 
-function onCropPointerMove(e) {
+function onPointerMove(e) {
   if (!isCropping || !dragMode || !dragStart) return;
   const p = getCanvasPoint(e);
 
-  if (dragMode === 'draw') {
-    cropRect = clampCropRect({
+  if (dragMode === 'draw' && !activeRatio) {
+    cropRect = clampRect({
       x: Math.min(dragStart.x, p.x),
       y: Math.min(dragStart.y, p.y),
       w: Math.abs(p.x - dragStart.x),
@@ -246,7 +278,7 @@ function onCropPointerMove(e) {
   }
 
   if (dragMode === 'move' && rectStart) {
-    cropRect = clampCropRect({
+    cropRect = clampRect({
       x: rectStart.x + (p.x - dragStart.x),
       y: rectStart.y + (p.y - dragStart.y),
       w: rectStart.w,
@@ -256,80 +288,19 @@ function onCropPointerMove(e) {
   }
 }
 
-function onCropPointerUp() {
+function onPointerUp() {
   dragMode = null;
   dragStart = null;
   rectStart = null;
 }
 
-if (canvas) canvas.addEventListener('mousedown', onCropPointerDown);
-if (cropOverlay) cropOverlay.addEventListener('mousedown', onCropPointerDown);
-window.addEventListener('mousemove', onCropPointerMove);
-window.addEventListener('mouseup', onCropPointerUp);
+if (canvas) canvas.addEventListener('mousedown', onPointerDown);
+if (cropOverlay) cropOverlay.addEventListener('mousedown', onPointerDown);
+window.addEventListener('mousemove', onPointerMove);
+window.addEventListener('mouseup', onPointerUp);
 
-// ===== Формат без обрезки (поля) =====
-function fitToRatio(ratioW, ratioH) {
-  if (!baseImageData || !canvas || !ctx) return;
-
-  const srcW = canvas.width;
-  const srcH = canvas.height;
-  const targetRatio = ratioW / ratioH;
-  const srcRatio = srcW / srcH;
-
-  let outW, outH;
-  if (srcRatio > targetRatio) {
-    outW = srcW;
-    outH = Math.round(srcW / targetRatio);
-  } else {
-    outH = srcH;
-    outW = Math.round(srcH * targetRatio);
-  }
-
-  const temp = document.createElement('canvas');
-  temp.width = srcW;
-  temp.height = srcH;
-  temp.getContext('2d').putImageData(baseImageData, 0, 0);
-
-  canvas.width = outW;
-  canvas.height = outH;
-  ctx.fillStyle = padColor;
-  ctx.fillRect(0, 0, outW, outH);
-
-  const x = Math.round((outW - srcW) / 2);
-  const y = Math.round((outH - srcH) / 2);
-  ctx.drawImage(temp, x, y);
-
-  baseImageData = ctx.getImageData(0, 0, outW, outH);
-  resetSliders();
-  endCropMode();
-}
-
-if (ratio11) ratio11.onclick = () => fitToRatio(1, 1);
-if (ratio34) ratio34.onclick = () => fitToRatio(3, 4);
-if (ratio45) ratio45.onclick = () => fitToRatio(4, 5);
-
-// ===== Фон =====
-if (bgLightBtn) {
-  bgLightBtn.onclick = () => {
-    padColor = '#f3f4f6';
-    if (canvasWrap) {
-      canvasWrap.classList.add('bg-light');
-      canvasWrap.classList.remove('bg-dark');
-    }
-  };
-}
-if (bgDarkBtn) {
-  bgDarkBtn.onclick = () => {
-    padColor = '#0a0c10';
-    if (canvasWrap) {
-      canvasWrap.classList.add('bg-dark');
-      canvasWrap.classList.remove('bg-light');
-    }
-  };
-}
-
-// ===== Круг / скругление =====
-function applyRoundedMask(radiusRatio) {
+// ===== Круг / скругление (прозрачный фон) =====
+function applyRoundedMask(kind) {
   if (!baseImageData || !canvas || !ctx) return;
   const w = canvas.width;
   const h = canvas.height;
@@ -340,15 +311,14 @@ function applyRoundedMask(radiusRatio) {
   temp.getContext('2d').putImageData(baseImageData, 0, 0);
 
   ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = padColor;
-  ctx.fillRect(0, 0, w, h);
-
-  const r = Math.min(w, h) * radiusRatio;
   ctx.save();
   ctx.beginPath();
-  if (radiusRatio >= 0.49) {
-    ctx.arc(w / 2, h / 2, Math.min(w, h) / 2, 0, Math.PI * 2);
+
+  if (kind === 'circle') {
+    const r = Math.min(w, h) / 2;
+    ctx.arc(w / 2, h / 2, r, 0, Math.PI * 2);
   } else {
+    const r = Math.min(w, h) * 0.12;
     ctx.moveTo(r, 0);
     ctx.arcTo(w, 0, w, h, r);
     ctx.arcTo(w, h, 0, h, r);
@@ -356,16 +326,18 @@ function applyRoundedMask(radiusRatio) {
     ctx.arcTo(0, 0, w, 0, r);
     ctx.closePath();
   }
+
   ctx.clip();
   ctx.drawImage(temp, 0, 0);
   ctx.restore();
 
   baseImageData = ctx.getImageData(0, 0, w, h);
   resetSliders();
+  endCropMode();
 }
 
-if (circleBtn) circleBtn.onclick = () => applyRoundedMask(0.5);
-if (roundBtn) roundBtn.onclick = () => applyRoundedMask(0.12);
+if (circleBtn) circleBtn.onclick = () => applyRoundedMask('circle');
+if (roundBtn) roundBtn.onclick = () => applyRoundedMask('round');
 
 if (bgRemoveBtn) {
   bgRemoveBtn.onclick = () => {
@@ -381,15 +353,16 @@ if (enhanceBtn) {
     enhanceBtn.disabled = true;
     enhanceBtn.textContent = t('processing') || 'Обрабатываем…';
 
-    const data = new ImageData(new Uint8ClampedArray(baseImageData.data), baseImageData.width, baseImageData.height);
+    const src = baseImageData.data;
+    const out = new Uint8ClampedArray(src.length);
     const contrastValue = 25;
     const brightnessValue = 8;
     const factor = (259 * (contrastValue + 255)) / (255 * (259 - contrastValue));
 
-    for (let i = 0; i < data.data.length; i += 4) {
-      let r = data.data[i] + brightnessValue;
-      let g = data.data[i + 1] + brightnessValue;
-      let b = data.data[i + 2] + brightnessValue;
+    for (let i = 0; i < src.length; i += 4) {
+      let r = src[i] + brightnessValue;
+      let g = src[i + 1] + brightnessValue;
+      let b = src[i + 2] + brightnessValue;
       r = factor * (r - 128) + 128;
       g = factor * (g - 128) + 128;
       b = factor * (b - 128) + 128;
@@ -397,19 +370,20 @@ if (enhanceBtn) {
       r = avg + (r - avg) * 1.15;
       g = avg + (g - avg) * 1.15;
       b = avg + (b - avg) * 1.15;
-      data.data[i] = Math.max(0, Math.min(255, r));
-      data.data[i + 1] = Math.max(0, Math.min(255, g));
-      data.data[i + 2] = Math.max(0, Math.min(255, b));
+      out[i] = r < 0 ? 0 : r > 255 ? 255 : r;
+      out[i + 1] = g < 0 ? 0 : g > 255 ? 255 : g;
+      out[i + 2] = b < 0 ? 0 : b > 255 ? 255 : b;
+      out[i + 3] = src[i + 3];
     }
 
-    ctx.putImageData(data, 0, 0);
+    ctx.putImageData(new ImageData(out, baseImageData.width, baseImageData.height), 0, 0);
     baseImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     resetSliders();
     enhanceBtn.textContent = t('enhanceDone') || 'Фото улучшено';
     setTimeout(() => {
       enhanceBtn.textContent = t('enhance') || 'Улучшить фото';
       enhanceBtn.disabled = false;
-    }, 1200);
+    }, 1000);
   };
 }
 
@@ -417,7 +391,8 @@ if (resetBtn) {
   resetBtn.onclick = () => {
     if (!originalImage || !canvas || !ctx) return;
     const max = 1200;
-    let w = originalImage.width, h = originalImage.height;
+    let w = originalImage.width;
+    let h = originalImage.height;
     if (w > max || h > max) {
       if (w > h) { h = Math.round(h * max / w); w = max; }
       else { w = Math.round(w * max / h); h = max; }
