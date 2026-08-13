@@ -338,3 +338,20 @@ footer a {
   .examples-grid { grid-template-columns: 1fr; }
   header h1 { font-size: 1.3rem; }
 }
+
+.canvas-wrap.bg-light {
+  background: #f3f4f6;
+}
+
+.canvas-wrap.bg-dark {
+  background: #0a0c10;
+}
+
+#cropOverlay {
+  position: absolute;
+  border: 2px solid var(--gold2);
+  background: rgba(212, 168, 75, 0.18);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
+  cursor: move;
+  pointer-events: auto;
+}
