@@ -43,14 +43,17 @@ const ratio34 = document.getElementById('ratio34');
 const ratio45 = document.getElementById('ratio45');
 const bgLightBtn = document.getElementById('bgLightBtn');
 const bgDarkBtn = document.getElementById('bgDarkBtn');
+const circleBtn = document.getElementById('circleBtn');
+const roundBtn = document.getElementById('roundBtn');
 const canvasWrap = document.querySelector('.canvas-wrap');
 
 let originalImage = null;
 let baseImageData = null;
+let padColor = '#0a0c10';
+
 let isCropping = false;
-let cropRect = null; // {x, y, w, h} в координатах canvas
-let activeRatio = null; // {w, h} или null
-let dragMode = null; // 'draw' | 'move'
+let cropRect = null;
+let dragMode = null;
 let dragStart = null;
 let rectStart = null;
 
@@ -115,7 +118,6 @@ function applyFilters() {
   }
   ctx.putImageData(data, 0, 0);
 }
-
 if (brightness) brightness.oninput = applyFilters;
 if (contrast) contrast.oninput = applyFilters;
 
@@ -129,12 +131,19 @@ function getCanvasPoint(e) {
   const scaleX = canvas.width / rect.width;
   const scaleY = canvas.height / rect.height;
   return {
-    x: Math.max(0, Math.min(canvas.width, (e.clientX - rect.left) * scaleX)),
-    y: Math.max(0, Math.min(canvas.height, (e.clientY - rect.top) * scaleY)),
-    scaleX,
-    scaleY,
-    rect
+    x: (e.clientX - rect.left) * scaleX,
+    y: (e.clientY - rect.top) * scaleY
   };
+}
+
+function clampCropRect(r) {
+  let w = Math.max(10, r.w);
+  let h = Math.max(10, r.h);
+  if (w > canvas.width) w = canvas.width;
+  if (h > canvas.height) h = canvas.height;
+  const x = Math.max(0, Math.min(r.x, canvas.width - w));
+  const y = Math.max(0, Math.min(r.y, canvas.height - h));
+  return { x, y, w, h };
 }
 
 function updateOverlay() {
@@ -149,149 +158,219 @@ function updateOverlay() {
   cropOverlay.style.height = (cropRect.h / scaleY) + 'px';
 }
 
-function startCropMode(ratio = null) {
+function startCropMode() {
   if (!canvas) return;
   isCropping = true;
-  activeRatio = ratio;
-  cropBtn.hidden = true;
+  if (cropBtn) cropBtn.hidden = true;
   if (applyCropBtn) applyCropBtn.hidden = false;
   if (cancelCropBtn) cancelCropBtn.hidden = false;
 
-  // стартовая рамка по центру
-  const target = ratio ? ratio.w / ratio.h : 1;
-  let w, h;
-  if (!ratio) {
-    w = Math.round(canvas.width * 0.7);
-    h = Math.round(canvas.height * 0.7);
-  } else if (canvas.width / canvas.height > target) {
-    h = Math.round(canvas.height * 0.8);
-    w = Math.round(h * target);
-  } else {
-    w = Math.round(canvas.width * 0.8);
-    h = Math.round(w / target);
-  }
-  cropRect = {
+  const w = Math.round(canvas.width * 0.7);
+  const h = Math.round(canvas.height * 0.7);
+  cropRect = clampCropRect({
     x: Math.round((canvas.width - w) / 2),
     y: Math.round((canvas.height - h) / 2),
     w,
     h
-  };
+  });
   updateOverlay();
 }
 
 function endCropMode() {
   isCropping = false;
-  activeRatio = null;
   dragMode = null;
+  dragStart = null;
+  rectStart = null;
   cropRect = null;
   if (cropOverlay) {
     cropOverlay.hidden = true;
-    cropOverlay.style.cssText = '';
+    cropOverlay.style.left = '';
+    cropOverlay.style.top = '';
+    cropOverlay.style.width = '';
+    cropOverlay.style.height = '';
   }
   if (cropBtn) cropBtn.hidden = false;
   if (applyCropBtn) applyCropBtn.hidden = true;
   if (cancelCropBtn) cancelCropBtn.hidden = true;
 }
 
-if (cropBtn) cropBtn.onclick = () => startCropMode(null);
+if (cropBtn) cropBtn.onclick = startCropMode;
 if (cancelCropBtn) cancelCropBtn.onclick = endCropMode;
-
-if (ratio11) ratio11.onclick = () => startCropMode({ w: 1, h: 1 });
-if (ratio34) ratio34.onclick = () => startCropMode({ w: 3, h: 4 });
-if (ratio45) ratio45.onclick = () => startCropMode({ w: 4, h: 5 });
 
 if (applyCropBtn) {
   applyCropBtn.onclick = () => {
-    if (!cropRect || cropRect.w < 10 || cropRect.h < 10 || !ctx) return;
-    const { x, y, w, h } = cropRect;
-    const cropped = ctx.getImageData(x, y, w, h);
-    canvas.width = w;
-    canvas.height = h;
+    if (!cropRect || !ctx) return;
+    const r = clampCropRect(cropRect);
+    const cropped = ctx.getImageData(Math.round(r.x), Math.round(r.y), Math.round(r.w), Math.round(r.h));
+    canvas.width = Math.round(r.w);
+    canvas.height = Math.round(r.h);
     ctx.putImageData(cropped, 0, 0);
-    baseImageData = ctx.getImageData(0, 0, w, h);
+    baseImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     endCropMode();
     resetSliders();
   };
 }
 
-if (canvas) {
-  canvas.addEventListener('mousedown', e => {
-    if (!isCropping) return;
-    const p = getCanvasPoint(e);
+function onCropPointerDown(e) {
+  if (!isCropping || !canvas) return;
+  e.preventDefault();
+  const p = getCanvasPoint(e);
+  const inside = cropRect &&
+    p.x >= cropRect.x && p.x <= cropRect.x + cropRect.w &&
+    p.y >= cropRect.y && p.y <= cropRect.y + cropRect.h;
 
-    // если клик внутри рамки — двигаем, иначе рисуем новую
-    if (cropRect &&
-        p.x >= cropRect.x && p.x <= cropRect.x + cropRect.w &&
-        p.y >= cropRect.y && p.y <= cropRect.y + cropRect.h) {
-      dragMode = 'move';
-      dragStart = { x: p.x, y: p.y };
-      rectStart = { ...cropRect };
-    } else if (!activeRatio) {
-      dragMode = 'draw';
-      dragStart = { x: p.x, y: p.y };
-      cropRect = { x: p.x, y: p.y, w: 1, h: 1 };
-      updateOverlay();
-    } else {
-      // при фиксированном ratio клик вне рамки тоже двигает
-      dragMode = 'move';
-      dragStart = { x: p.x, y: p.y };
-      rectStart = { ...cropRect };
-    }
-  });
-
-  window.addEventListener('mousemove', e => {
-    if (!isCropping || !dragMode || !dragStart) return;
-    const p = getCanvasPoint(e);
-
-    if (dragMode === 'draw') {
-      const x1 = dragStart.x;
-      const y1 = dragStart.y;
-      const x2 = p.x;
-      const y2 = p.y;
-      cropRect = {
-        x: Math.min(x1, x2),
-        y: Math.min(y1, y2),
-        w: Math.abs(x2 - x1),
-        h: Math.abs(y2 - y1)
-      };
-      updateOverlay();
-    }
-
-    if (dragMode === 'move' && rectStart) {
-      let nx = rectStart.x + (p.x - dragStart.x);
-      let ny = rectStart.y + (p.y - dragStart.y);
-      nx = Math.max(0, Math.min(canvas.width - rectStart.w, nx));
-      ny = Math.max(0, Math.min(canvas.height - rectStart.h, ny));
-      cropRect = { x: nx, y: ny, w: rectStart.w, h: rectStart.h };
-      updateOverlay();
-    }
-  });
-
-  window.addEventListener('mouseup', () => {
-    dragMode = null;
-    dragStart = null;
-    rectStart = null;
-  });
+  if (inside) {
+    dragMode = 'move';
+    dragStart = { x: p.x, y: p.y };
+    rectStart = { ...cropRect };
+  } else {
+    dragMode = 'draw';
+    dragStart = { x: p.x, y: p.y };
+    cropRect = { x: p.x, y: p.y, w: 1, h: 1 };
+    updateOverlay();
+  }
 }
+
+function onCropPointerMove(e) {
+  if (!isCropping || !dragMode || !dragStart) return;
+  const p = getCanvasPoint(e);
+
+  if (dragMode === 'draw') {
+    cropRect = clampCropRect({
+      x: Math.min(dragStart.x, p.x),
+      y: Math.min(dragStart.y, p.y),
+      w: Math.abs(p.x - dragStart.x),
+      h: Math.abs(p.y - dragStart.y)
+    });
+    updateOverlay();
+  }
+
+  if (dragMode === 'move' && rectStart) {
+    cropRect = clampCropRect({
+      x: rectStart.x + (p.x - dragStart.x),
+      y: rectStart.y + (p.y - dragStart.y),
+      w: rectStart.w,
+      h: rectStart.h
+    });
+    updateOverlay();
+  }
+}
+
+function onCropPointerUp() {
+  dragMode = null;
+  dragStart = null;
+  rectStart = null;
+}
+
+if (canvas) canvas.addEventListener('mousedown', onCropPointerDown);
+if (cropOverlay) cropOverlay.addEventListener('mousedown', onCropPointerDown);
+window.addEventListener('mousemove', onCropPointerMove);
+window.addEventListener('mouseup', onCropPointerUp);
+
+// ===== Формат без обрезки (поля) =====
+function fitToRatio(ratioW, ratioH) {
+  if (!baseImageData || !canvas || !ctx) return;
+
+  const srcW = canvas.width;
+  const srcH = canvas.height;
+  const targetRatio = ratioW / ratioH;
+  const srcRatio = srcW / srcH;
+
+  let outW, outH;
+  if (srcRatio > targetRatio) {
+    outW = srcW;
+    outH = Math.round(srcW / targetRatio);
+  } else {
+    outH = srcH;
+    outW = Math.round(srcH * targetRatio);
+  }
+
+  const temp = document.createElement('canvas');
+  temp.width = srcW;
+  temp.height = srcH;
+  temp.getContext('2d').putImageData(baseImageData, 0, 0);
+
+  canvas.width = outW;
+  canvas.height = outH;
+  ctx.fillStyle = padColor;
+  ctx.fillRect(0, 0, outW, outH);
+
+  const x = Math.round((outW - srcW) / 2);
+  const y = Math.round((outH - srcH) / 2);
+  ctx.drawImage(temp, x, y);
+
+  baseImageData = ctx.getImageData(0, 0, outW, outH);
+  resetSliders();
+  endCropMode();
+}
+
+if (ratio11) ratio11.onclick = () => fitToRatio(1, 1);
+if (ratio34) ratio34.onclick = () => fitToRatio(3, 4);
+if (ratio45) ratio45.onclick = () => fitToRatio(4, 5);
 
 // ===== Фон =====
-if (bgLightBtn && canvasWrap) {
+if (bgLightBtn) {
   bgLightBtn.onclick = () => {
-    canvasWrap.classList.add('bg-light');
-    canvasWrap.classList.remove('bg-dark');
+    padColor = '#f3f4f6';
+    if (canvasWrap) {
+      canvasWrap.classList.add('bg-light');
+      canvasWrap.classList.remove('bg-dark');
+    }
   };
 }
-if (bgDarkBtn && canvasWrap) {
+if (bgDarkBtn) {
   bgDarkBtn.onclick = () => {
-    canvasWrap.classList.add('bg-dark');
-    canvasWrap.classList.remove('bg-light');
+    padColor = '#0a0c10';
+    if (canvasWrap) {
+      canvasWrap.classList.add('bg-dark');
+      canvasWrap.classList.remove('bg-light');
+    }
   };
 }
+
+// ===== Круг / скругление =====
+function applyRoundedMask(radiusRatio) {
+  if (!baseImageData || !canvas || !ctx) return;
+  const w = canvas.width;
+  const h = canvas.height;
+
+  const temp = document.createElement('canvas');
+  temp.width = w;
+  temp.height = h;
+  temp.getContext('2d').putImageData(baseImageData, 0, 0);
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = padColor;
+  ctx.fillRect(0, 0, w, h);
+
+  const r = Math.min(w, h) * radiusRatio;
+  ctx.save();
+  ctx.beginPath();
+  if (radiusRatio >= 0.49) {
+    ctx.arc(w / 2, h / 2, Math.min(w, h) / 2, 0, Math.PI * 2);
+  } else {
+    ctx.moveTo(r, 0);
+    ctx.arcTo(w, 0, w, h, r);
+    ctx.arcTo(w, h, 0, h, r);
+    ctx.arcTo(0, h, 0, 0, r);
+    ctx.arcTo(0, 0, w, 0, r);
+    ctx.closePath();
+  }
+  ctx.clip();
+  ctx.drawImage(temp, 0, 0);
+  ctx.restore();
+
+  baseImageData = ctx.getImageData(0, 0, w, h);
+  resetSliders();
+}
+
+if (circleBtn) circleBtn.onclick = () => applyRoundedMask(0.5);
+if (roundBtn) roundBtn.onclick = () => applyRoundedMask(0.12);
 
 if (bgRemoveBtn) {
   bgRemoveBtn.onclick = () => {
     alert(currentLang === 'ru'
-      ? 'Удаление фона временно в разработке. Скоро вернём.'
+      ? 'Удаление фона временно в разработке.'
       : 'Background removal is temporarily unavailable.');
   };
 }
