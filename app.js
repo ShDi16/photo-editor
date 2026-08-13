@@ -48,9 +48,8 @@ let originalImage = null;
 let baseImageData = null;
 
 let isCropping = false;
-let activeRatio = null; // {w,h} or null
-let cropRect = null;    // {x,y,w,h} in canvas pixels
-let dragMode = null;    // 'draw' | 'move'
+let cropRect = null;
+let dragMode = null;
 let dragStart = null;
 let rectStart = null;
 
@@ -137,7 +136,7 @@ function getCanvasPoint(e) {
   };
 }
 
-function clampRect(r) {
+function clampCropRect(r) {
   let w = Math.max(10, r.w);
   let h = Math.max(10, r.h);
   if (w > canvas.width) w = canvas.width;
@@ -159,50 +158,26 @@ function updateOverlay() {
   cropOverlay.style.height = (cropRect.h / scaleY) + 'px';
 }
 
-function makeRatioRect(ratioW, ratioH) {
-  const target = ratioW / ratioH;
-  const imgRatio = canvas.width / canvas.height;
-  let w, h;
-  if (imgRatio > target) {
-    // image wider -> fit by height
-    h = canvas.height;
-    w = Math.round(h * target);
-  } else {
-    w = canvas.width;
-    h = Math.round(w / target);
-  }
-  return clampRect({
+function startCropMode() {
+  if (!canvas || !baseImageData) return;
+  isCropping = true;
+  if (cropBtn) cropBtn.hidden = true;
+  if (applyCropBtn) applyCropBtn.hidden = false;
+  if (cancelCropBtn) cancelCropBtn.hidden = false;
+
+  const w = Math.round(canvas.width * 0.7);
+  const h = Math.round(canvas.height * 0.7);
+  cropRect = clampCropRect({
     x: Math.round((canvas.width - w) / 2),
     y: Math.round((canvas.height - h) / 2),
     w,
     h
   });
-}
-
-function startCropMode(ratio = null) {
-  if (!canvas || !baseImageData) return;
-  isCropping = true;
-  activeRatio = ratio;
-  if (cropBtn) cropBtn.hidden = true;
-  if (applyCropBtn) applyCropBtn.hidden = false;
-  if (cancelCropBtn) cancelCropBtn.hidden = false;
-
-  if (ratio) {
-    cropRect = makeRatioRect(ratio.w, ratio.h);
-  } else {
-    cropRect = clampRect({
-      x: Math.round(canvas.width * 0.15),
-      y: Math.round(canvas.height * 0.15),
-      w: Math.round(canvas.width * 0.7),
-      h: Math.round(canvas.height * 0.7)
-    });
-  }
   updateOverlay();
 }
 
 function endCropMode() {
   isCropping = false;
-  activeRatio = null;
   dragMode = null;
   dragStart = null;
   rectStart = null;
@@ -219,16 +194,13 @@ function endCropMode() {
   if (cancelCropBtn) cancelCropBtn.hidden = true;
 }
 
-if (cropBtn) cropBtn.onclick = () => startCropMode(null);
+if (cropBtn) cropBtn.onclick = startCropMode;
 if (cancelCropBtn) cancelCropBtn.onclick = endCropMode;
-if (ratio11) ratio11.onclick = () => startCropMode({ w: 1, h: 1 });
-if (ratio34) ratio34.onclick = () => startCropMode({ w: 3, h: 4 });
-if (ratio45) ratio45.onclick = () => startCropMode({ w: 4, h: 5 });
 
 if (applyCropBtn) {
   applyCropBtn.onclick = () => {
     if (!cropRect || !ctx) return;
-    const r = clampRect(cropRect);
+    const r = clampCropRect(cropRect);
     const x = Math.round(r.x);
     const y = Math.round(r.y);
     const w = Math.round(r.w);
@@ -243,7 +215,7 @@ if (applyCropBtn) {
   };
 }
 
-function onPointerDown(e) {
+function onCropPointerDown(e) {
   if (!isCropping || !canvas) return;
   e.preventDefault();
   const p = getCanvasPoint(e);
@@ -251,7 +223,7 @@ function onPointerDown(e) {
     p.x >= cropRect.x && p.x <= cropRect.x + cropRect.w &&
     p.y >= cropRect.y && p.y <= cropRect.y + cropRect.h;
 
-  if (inside || activeRatio) {
+  if (inside) {
     dragMode = 'move';
     dragStart = { x: p.x, y: p.y };
     rectStart = { ...cropRect };
@@ -263,12 +235,12 @@ function onPointerDown(e) {
   }
 }
 
-function onPointerMove(e) {
+function onCropPointerMove(e) {
   if (!isCropping || !dragMode || !dragStart) return;
   const p = getCanvasPoint(e);
 
-  if (dragMode === 'draw' && !activeRatio) {
-    cropRect = clampRect({
+  if (dragMode === 'draw') {
+    cropRect = clampCropRect({
       x: Math.min(dragStart.x, p.x),
       y: Math.min(dragStart.y, p.y),
       w: Math.abs(p.x - dragStart.x),
@@ -278,7 +250,7 @@ function onPointerMove(e) {
   }
 
   if (dragMode === 'move' && rectStart) {
-    cropRect = clampRect({
+    cropRect = clampCropRect({
       x: rectStart.x + (p.x - dragStart.x),
       y: rectStart.y + (p.y - dragStart.y),
       w: rectStart.w,
@@ -288,23 +260,59 @@ function onPointerMove(e) {
   }
 }
 
-function onPointerUp() {
+function onCropPointerUp() {
   dragMode = null;
   dragStart = null;
   rectStart = null;
 }
 
-if (canvas) canvas.addEventListener('mousedown', onPointerDown);
-if (cropOverlay) cropOverlay.addEventListener('mousedown', onPointerDown);
-window.addEventListener('mousemove', onPointerMove);
-window.addEventListener('mouseup', onPointerUp);
+if (canvas) canvas.addEventListener('mousedown', onCropPointerDown);
+if (cropOverlay) cropOverlay.addEventListener('mousedown', onCropPointerDown);
+window.addEventListener('mousemove', onCropPointerMove);
+window.addEventListener('mouseup', onCropPointerUp);
+
+// ===== 1:1 / 3:4 / 4:5 — сразу, без рамки =====
+function formatToRatio(ratioW, ratioH) {
+  if (!baseImageData || !canvas || !ctx) return;
+
+  const srcW = canvas.width;
+  const srcH = canvas.height;
+  const target = ratioW / ratioH;
+  const current = srcW / srcH;
+
+  let cutX = 0;
+  let cutY = 0;
+  let cutW = srcW;
+  let cutH = srcH;
+
+  if (current > target) {
+    cutW = Math.round(srcH * target);
+    cutX = Math.round((srcW - cutW) / 2);
+  } else if (current < target) {
+    cutH = Math.round(srcW / target);
+    cutY = Math.round((srcH - cutH) / 2);
+  }
+
+  const cropped = ctx.getImageData(cutX, cutY, cutW, cutH);
+  canvas.width = cutW;
+  canvas.height = cutH;
+  ctx.putImageData(cropped, 0, 0);
+  baseImageData = ctx.getImageData(0, 0, cutW, cutH);
+
+  resetSliders();
+  endCropMode();
+}
+
+if (ratio11) ratio11.onclick = () => formatToRatio(1, 1);
+if (ratio34) ratio34.onclick = () => formatToRatio(3, 4);
+if (ratio45) ratio45.onclick = () => formatToRatio(4, 5);
 
 // ===== Круг / скругление (прозрачный фон) =====
 function applyRoundedMask(kind) {
   if (!baseImageData || !canvas || !ctx) return;
+
   const w = canvas.width;
   const h = canvas.height;
-
   const temp = document.createElement('canvas');
   temp.width = w;
   temp.height = h;
@@ -379,6 +387,7 @@ if (enhanceBtn) {
     ctx.putImageData(new ImageData(out, baseImageData.width, baseImageData.height), 0, 0);
     baseImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     resetSliders();
+
     enhanceBtn.textContent = t('enhanceDone') || 'Фото улучшено';
     setTimeout(() => {
       enhanceBtn.textContent = t('enhance') || 'Улучшить фото';
