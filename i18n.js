@@ -1,7 +1,7 @@
 export const translations = {
   ru: {
     title: "Редактор фото",
-    subtitle: "Бесплатный онлайн-редактор фото для маркетплейсов и соцсетей. Обрезка, улучшение качества, яркость и контраст — без регистрации и установки программ.",
+    subtitle: "Бесплатный онлайн-редактор фото для маркетплейсов и соцсетей. Форматы, улучшение качества, яркость и контраст — без регистрации и установки программ.",
     upload: "Выбрать фото",
     drop: "или перетащи сюда",
     brightness: "Яркость",
@@ -14,15 +14,12 @@ export const translations = {
     reset: "Сбросить",
     download: "Скачать",
     processing: "Обрабатываем…",
-    loadingModel: "Загрузка модели…",
-    bgDone: "Фон удалён",
-    bgError: "Не удалось удалить фон. Попробуйте другое фото или обновите страницу.",
     enhanceDone: "Фото улучшено",
     newPhoto: "Новое фото"
   },
   en: {
     title: "Photo Editor",
-    subtitle: "Free online photo editor for marketplaces and social media. Crop, enhance, brightness and contrast — no registration or installation required.",
+    subtitle: "Free online photo editor for marketplaces and social media. Formats, enhance, brightness and contrast — no registration required.",
     upload: "Choose photo",
     drop: "or drag & drop here",
     brightness: "Brightness",
@@ -35,9 +32,6 @@ export const translations = {
     reset: "Reset",
     download: "Download",
     processing: "Processing…",
-    loadingModel: "Loading model…",
-    bgDone: "Background removed",
-    bgError: "Could not remove background. Try another photo or refresh the page.",
     enhanceDone: "Photo enhanced",
     newPhoto: "New photo"
   }
