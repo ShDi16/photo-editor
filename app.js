@@ -111,7 +111,7 @@ function applyFilters() {
     r = factor * (r - 128) + 128;
     g = factor * (g - 128) + 128;
     bl = factor * (bl - 128) + 128;
-    out[i] = r < 0 ? 0 : r > 255 ? 255 : r;
+    out[i]     = r < 0 ? 0 : r > 255 ? 255 : r;
     out[i + 1] = g < 0 ? 0 : g > 255 ? 255 : g;
     out[i + 2] = bl < 0 ? 0 : bl > 255 ? 255 : bl;
     out[i + 3] = src[i + 3];
@@ -271,7 +271,7 @@ if (cropOverlay) cropOverlay.addEventListener('mousedown', onCropPointerDown);
 window.addEventListener('mousemove', onCropPointerMove);
 window.addEventListener('mouseup', onCropPointerUp);
 
-// ===== 1:1 / 3:4 / 4:5 — вписать фото целиком, без обрезки =====
+// ===== 1:1 / 3:4 / 4:5 — обрезать под формат (фото заполняет кадр) =====
 function formatToRatio(ratioW, ratioH) {
   if (!baseImageData || !canvas || !ctx) return;
 
@@ -280,39 +280,27 @@ function formatToRatio(ratioW, ratioH) {
   const target = ratioW / ratioH;
   const current = srcW / srcH;
 
-  let outW, outH;
+  let cutX = 0;
+  let cutY = 0;
+  let cutW = srcW;
+  let cutH = srcH;
 
-  // Новый холст нужного формата, фото вписываем целиком
   if (current > target) {
-    // фото шире — поля сверху/снизу
-    outW = srcW;
-    outH = Math.round(srcW / target);
-  } else {
-    // фото выше — поля слева/справа
-    outH = srcH;
-    outW = Math.round(srcH * target);
+    // слишком широкое — режем по бокам
+    cutW = Math.round(srcH * target);
+    cutX = Math.round((srcW - cutW) / 2);
+  } else if (current < target) {
+    // слишком высокое — режем сверху и снизу
+    cutH = Math.round(srcW / target);
+    cutY = Math.round((srcH - cutH) / 2);
   }
 
-  // сохраняем текущее фото
-  const temp = document.createElement('canvas');
-  temp.width = srcW;
-  temp.height = srcH;
-  temp.getContext('2d').putImageData(baseImageData, 0, 0);
+  const cropped = ctx.getImageData(cutX, cutY, cutW, cutH);
+  canvas.width = cutW;
+  canvas.height = cutH;
+  ctx.putImageData(cropped, 0, 0);
+  baseImageData = ctx.getImageData(0, 0, cutW, cutH);
 
-  // новый размер
-  canvas.width = outW;
-  canvas.height = outH;
-
-  // белый фон (удобно для WB/Ozon)
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, outW, outH);
-
-  // фото по центру, без обрезки
-  const x = Math.round((outW - srcW) / 2);
-  const y = Math.round((outH - srcH) / 2);
-  ctx.drawImage(temp, x, y);
-
-  baseImageData = ctx.getImageData(0, 0, outW, outH);
   resetSliders();
   endCropMode();
 }
@@ -321,7 +309,7 @@ if (ratio11) ratio11.onclick = () => formatToRatio(1, 1);
 if (ratio34) ratio34.onclick = () => formatToRatio(3, 4);
 if (ratio45) ratio45.onclick = () => formatToRatio(4, 5);
 
-// ===== Круг / скругление (прозрачный фон) =====
+// ===== Круг / Скругление (прозрачный фон) =====
 function applyRoundedMask(kind) {
   if (!baseImageData || !canvas || !ctx) return;
 
@@ -392,7 +380,7 @@ if (enhanceBtn) {
       r = avg + (r - avg) * 1.15;
       g = avg + (g - avg) * 1.15;
       b = avg + (b - avg) * 1.15;
-      out[i] = r < 0 ? 0 : r > 255 ? 255 : r;
+      out[i]     = r < 0 ? 0 : r > 255 ? 255 : r;
       out[i + 1] = g < 0 ? 0 : g > 255 ? 255 : g;
       out[i + 2] = b < 0 ? 0 : b > 255 ? 255 : b;
       out[i + 3] = src[i + 3];
