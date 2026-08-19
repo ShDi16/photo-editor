@@ -1,11 +1,6 @@
-// API-ключ Remove.bg
-const REMOVE_BG_API_KEY = "R3SAHzLZANzEk9PMgMWQJ3g5";
-
-let cropper = null;
 const imageElement = document.getElementById('image');
 const uploadInput = document.getElementById('uploadInput');
 
-// Загрузка изображения в редактор
 if (uploadInput) {
   uploadInput.addEventListener('change', (e) => {
     const files = e.target.files;
@@ -16,80 +11,38 @@ if (uploadInput) {
       reader.onload = (event) => {
         imageElement.src = event.target.result;
         imageElement.style.display = 'block';
-
-        if (cropper) {
-          cropper.destroy();
-        }
-
-        cropper = new Cropper(imageElement, {
-          viewMode: 1,
-          autoCropArea: 1,
-        });
       };
       reader.readAsDataURL(file);
     }
   });
 }
 
-// Кнопки кадрирования
-document.getElementById('btnSquare')?.addEventListener('click', () => {
-  if (cropper) cropper.setAspectRatio(1 / 1);
+// Поворот
+let rotation = 0;
+document.getElementById('btnRotate')?.addEventListener('click', () => {
+  rotation = (rotation + 90) % 360;
+  imageElement.style.transform = `rotate(${rotation}deg)`;
 });
 
-document.getElementById('btnFashion')?.addEventListener('click', () => {
-  if (cropper) cropper.setAspectRatio(3 / 4);
+// Скругление
+let isRounded = false;
+document.getElementById('btnRound')?.addEventListener('click', () => {
+  isRounded = !isRounded;
+  imageElement.style.borderRadius = isRounded ? '20px' : '0';
 });
 
-document.getElementById('btnLandscape')?.addEventListener('click', () => {
-  if (cropper) cropper.setAspectRatio(4 / 3);
+// Улучшение
+let isEnhanced = false;
+document.getElementById('btnEnhance')?.addEventListener('click', () => {
+  isEnhanced = !isEnhanced;
+  imageElement.style.filter = isEnhanced ? 'contrast(110%) brightness(105%)' : 'none';
 });
 
-document.getElementById('btnFree')?.addEventListener('click', () => {
-  if (cropper) cropper.setAspectRatio(NaN);
-});
-
-// Удаление фона через Remove.bg API
-document.getElementById('btnRemoveBg')?.addEventListener('click', async () => {
-  if (!cropper) {
-    alert('Сначала загрузите изображение!');
-    return;
-  }
-
-  cropper.getCroppedCanvas().toBlob(async (blob) => {
-    const formData = new FormData();
-    formData.append('image_file', blob);
-    formData.append('size', 'auto');
-
-    try {
-      const response = await fetch('https://api.remove.bg/v1.0/removebg', {
-        method: 'POST',
-        headers: {
-          'X-Api-Key': REMOVE_BG_API_KEY
-        },
-        body: formData
-      });
-
-      if (response.ok) {
-        const resultBlob = await response.blob();
-        const newUrl = URL.createObjectURL(resultBlob);
-        cropper.replace(newUrl);
-      } else {
-        alert('Ошибка при удалении фона. Проверьте API-ключ или лимит запросов.');
-      }
-    } catch (error) {
-      console.error(error);
-      alert('Сетевая ошибка при обращении к сервису.');
-    }
-  });
-});
-
-// Скачивание готового файла
+// Скачивание
 document.getElementById('btnDownload')?.addEventListener('click', () => {
-  if (!cropper) return;
-  
-  const canvas = cropper.getCroppedCanvas();
+  if (!imageElement.src) return;
   const link = document.createElement('a');
-  link.download = 'edited-photo.png';
-  link.href = canvas.toDataURL('image/png');
+  link.download = 'photo.png';
+  link.href = imageElement.src;
   link.click();
 });
