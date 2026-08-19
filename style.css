@@ -355,3 +355,21 @@ footer a {
   cursor: move;
   pointer-events: auto;
 }
+
+/* Кнопки выбора цвета полей */
+#padWhiteBtn.active,
+#padBlackBtn.active {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold);
+}
+
+.canvas-wrap {
+  width: 100%;
+}
+
+#canvas {
+  width: 100%;
+  height: auto;
+  max-height: 75vh;
+  display: block;
+}
