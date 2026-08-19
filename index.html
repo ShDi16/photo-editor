@@ -3,21 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Онлайн Фоторедактор — Кадрирование для маркетплейсов и Удаление фона</title>
-  <meta name="description" content="Бесплатный онлайн редактор фото. Быстрое кадрирование под Wildberries, Ozon и удаление фона за 1 клик.">
+  <title>Онлайн Фоторедактор — Кадрирование, Ретушь и Обработка Изображений</title>
+  <meta name="description" content="Бесплатный универсальный онлайн фоторедактор: кадрирование, скругление углов, фильтры, улучшение качества и автоматическое удаление фона.">
   
-  <!-- Подключение стилей Cropper.js -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
   <header class="header">
-    <h1>Фоторедактор для Маркетплейсов</h1>
+    <div class="header-content">
+      <a href="/" class="logo">Foto-Redaktor.ru</a>
+      <nav class="nav">
+        <a href="about.html">О сервисе</a>
+        <a href="контакты.html">Контакты</a>
+        <a href="конфиденциальность.html">Политика конфиденциальности</a>
+      </nav>
+    </div>
   </header>
 
   <main class="container">
-    <!-- Панель управления -->
     <aside class="sidebar">
       <div class="section">
         <h3>1. Загрузка</h3>
@@ -25,30 +30,44 @@
       </div>
 
       <div class="section">
-        <h3>2. Пресеты (Маркетплейсы)</h3>
-        <button type="button" class="btn" id="btnSquare">Wildberries / Ozon (1:1)</button>
-        <button type="button" class="btn" id="btnFashion">WB Одежда (3:4)</button>
-        <button type="button" class="btn" id="btnLandscape">Товары (4:3)</button>
+        <h3>2. Пропорции и Форматы</h3>
+        <button type="button" class="btn" id="btnSquare">Квадрат (1:1)</button>
+        <button type="button" class="btn" id="btnPortrait">Портрет (3:4)</button>
+        <button type="button" class="btn" id="btnLandscape">Пейзаж (16:9)</button>
         <button type="button" class="btn btn-secondary" id="btnFree">Произвольно</button>
       </div>
 
       <div class="section">
-        <h3>3. Инструменты</h3>
-        <button type="button" class="btn btn-action" id="btnRemoveBg">Удалить фон (Remove.bg)</button>
+        <h3>3. Инструменты и Скругление</h3>
+        <button type="button" class="btn" id="btnRotate">Повернуть на 90°</button>
+        <button type="button" class="btn" id="btnRound">Скругление углов</button>
+        <button type="button" class="btn btn-gold" id="btnEnhance">Улучшить качество</button>
+        <button type="button" class="btn btn-action" id="btnRemoveBg">Удалить фон</button>
+      </div>
+
+      <div class="section">
+        <h3>4. Экспорт</h3>
         <button type="button" class="btn btn-success" id="btnDownload">Скачать результат</button>
       </div>
     </aside>
 
-    <!-- Область предпросмотра -->
     <section class="preview-area">
       <div class="img-container">
-        <img id="image" src="" alt="Загруженное изображение" style="display: none;">
+        <img id="image" src="" alt="Предпросмотр" style="display: none;">
       </div>
     </section>
   </main>
 
-  <!-- Скрипты -->
+  <article class="seo-section">
+    <h2>Универсальный онлайн фоторедактор</h2>
+    <p>Простой и быстрый инструмент для быстрой обработки фотографий, создания контента для соцсетей, подготовки изображений к печати и работы с товарами.</p>
+  </article>
+
+  <footer class="footer">
+    <p>&copy; 2026 Foto-Redaktor.ru — Графический редактор онлайн.</p>
+  </footer>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-  <script src="script.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
