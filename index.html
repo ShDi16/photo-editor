@@ -3,127 +3,52 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Бесплатный фоторедактор онлайн — обрезать и улучшить фото | foto-redaktor.ru</title>
-  <meta name="description" content="Бесплатный онлайн-редактор фото для Wildberries, Ozon и соцсетей. Форматы 1:1, 3:4, 4:5, улучшение качества, яркость и контраст. Без регистрации.">
+  <title>Онлайн Фоторедактор — Кадрирование для маркетплейсов и Удаление фона</title>
+  <meta name="description" content="Бесплатный онлайн редактор фото. Быстрое кадрирование под Wildberries, Ozon и удаление фона за 1 клик.">
+  
+  <!-- Подключение стилей Cropper.js -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <div class="header-top">
-      <h1 data-i18n="title">Редактор фото</h1>
-      <div class="lang-switch">
-        <button id="langRU" class="active">RU</button>
-        <button id="langEN">EN</button>
-      </div>
-    </div>
-    <p data-i18n="subtitle">Бесплатный онлайн-редактор фото для маркетплейсов и соцсетей. Форматы, улучшение качества, яркость и контраст — без регистрации и установки программ.</p>
+
+  <header class="header">
+    <h1>Фоторедактор для Маркетплейсов</h1>
   </header>
 
-  <main>
-    <section class="how-box">
-      <h2>Как пользоваться редактором</h2>
-      <ol>
-        <li>Нажмите «Выбрать фото» или перетащите изображение</li>
-        <li>Выберите формат 1:1, 3:4 или 4:5 (фото останется целым, появятся поля)</li>
-        <li>При необходимости выберите цвет полей (белый / чёрный)</li>
-        <li>Настройте яркость и контраст или нажмите «Улучшить фото»</li>
-        <li>Скачайте результат на устройство</li>
-      </ol>
-      <p>Все фото обрабатываются прямо в браузере и не загружаются на наши серверы.</p>
-    </section>
-
-    <section class="trust">
-      <div class="trust-item">
-        <strong>Бесплатно</strong>
-        <span>Без оплаты и подписок</span>
-      </div>
-      <div class="trust-item">
-        <strong>В браузере</strong>
-        <span>Ничего устанавливать не нужно</span>
-      </div>
-      <div class="trust-item">
-        <strong>Без регистрации</strong>
-        <span>Открыл и пользуйся</span>
-      </div>
-      <div class="trust-item">
-        <strong>Безопасно</strong>
-        <span>Фото не уходят на сервер</span>
-      </div>
-    </section>
-
-    <div class="upload-zone" id="dropZone">
-      <input type="file" id="fileInput" accept="image/*" hidden>
-      <button id="uploadBtn" data-i18n="upload">Выбрать фото</button>
-      <p data-i18n="drop">или перетащи сюда</p>
-    </div>
-
-    <div class="editor" id="editor" hidden>
-      <div class="canvas-wrap">
-        <canvas id="canvas"></canvas>
-        <div id="cropOverlay" class="crop-overlay" hidden></div>
+  <main class="container">
+    <!-- Панель управления -->
+    <aside class="sidebar">
+      <div class="section">
+        <h3>1. Загрузка</h3>
+        <input type="file" id="uploadInput" accept="image/*">
       </div>
 
-      <div class="controls">
-        <div class="sliders">
-          <label>
-            <span data-i18n="brightness">Яркость</span>
-            <input type="range" id="brightness" min="-100" max="100" value="0">
-          </label>
-          <label>
-            <span data-i18n="contrast">Контраст</span>
-            <input type="range" id="contrast" min="-100" max="100" value="0">
-          </label>
-        </div>
-
-        <div class="buttons">
-          <button id="newPhotoBtn" data-i18n="newPhoto">Новое фото</button>
-          <button id="cropBtn" data-i18n="crop">Обрезать</button>
-          <button id="applyCropBtn" hidden data-i18n="applyCrop">Применить обрезку</button>
-          <button id="cancelCropBtn" hidden data-i18n="cancel">Отмена</button>
-
-          <button id="ratio11" class="ratio-btn">1:1</button>
-          <button id="ratio34" class="ratio-btn">3:4</button>
-          <button id="ratio45" class="ratio-btn">4:5</button>
-
-          <button id="padWhiteBtn" type="button">Белый фон</button>
-          <button id="padBlackBtn" type="button">Чёрный фон</button>
-
-          <button id="circleBtn" type="button">Круг</button>
-          <button id="roundBtn" type="button">Скругление</button>
-
-          <button id="bgRemoveBtn" data-i18n="removeBg">Удалить фон</button>
-          <button id="enhanceBtn" data-i18n="enhance">Улучшить фото</button>
-          <button id="resetBtn" data-i18n="reset">Сбросить</button>
-          <button id="downloadBtn" class="primary" data-i18n="download">Скачать</button>
-        </div>
+      <div class="section">
+        <h3>2. Пресеты (Маркетплейсы)</h3>
+        <button type="button" class="btn" id="btnSquare">Wildberries / Ozon (1:1)</button>
+        <button type="button" class="btn" id="btnFashion">WB Одежда (3:4)</button>
+        <button type="button" class="btn" id="btnLandscape">Товары (4:3)</button>
+        <button type="button" class="btn btn-secondary" id="btnFree">Произвольно</button>
       </div>
-    </div>
 
-    <section class="examples">
-      <h2>Примеры обработки</h2>
-      <div class="examples-grid">
-        <div class="example-card before">
-          <div class="label">До</div>
-          <div class="fake-photo">Тусклое фото</div>
-        </div>
-        <div class="example-card after">
-          <div class="label">После</div>
-          <div class="fake-photo">Яркий результат</div>
-        </div>
+      <div class="section">
+        <h3>3. Инструменты</h3>
+        <button type="button" class="btn btn-action" id="btnRemoveBg">Удалить фон (Remove.bg)</button>
+        <button type="button" class="btn btn-success" id="btnDownload">Скачать результат</button>
+      </div>
+    </aside>
+
+    <!-- Область предпросмотра -->
+    <section class="preview-area">
+      <div class="img-container">
+        <img id="image" src="" alt="Загруженное изображение" style="display: none;">
       </div>
     </section>
   </main>
 
-  <div id="ad-slot-bottom" class="ad-slot" hidden></div>
-
-  <footer>
-    <a href="about.html">О проекте</a> ·
-    <a href="privacy.html">Конфиденциальность</a> ·
-    <a href="contacts.html">Контакты</a>
-    <div style="margin-top:0.5rem;">© 2026 foto-redaktor.ru</div>
-  </footer>
-
-  <script type="module" src="app.js"></script>
-  <script src="ads.js" defer></script>
+  <!-- Скрипты -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
