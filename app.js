@@ -43,9 +43,12 @@ const ratio34 = document.getElementById('ratio34');
 const ratio45 = document.getElementById('ratio45');
 const circleBtn = document.getElementById('circleBtn');
 const roundBtn = document.getElementById('roundBtn');
+const padWhiteBtn = document.getElementById('padWhiteBtn');
+const padBlackBtn = document.getElementById('padBlackBtn');
 
 let originalImage = null;
 let baseImageData = null;
+let padColor = '#ffffff';
 
 let isCropping = false;
 let cropRect = null;
@@ -271,7 +274,23 @@ if (cropOverlay) cropOverlay.addEventListener('mousedown', onCropPointerDown);
 window.addEventListener('mousemove', onCropPointerMove);
 window.addEventListener('mouseup', onCropPointerUp);
 
-// ===== 1:1 / 3:4 / 4:5 — обрезать под формат (фото заполняет кадр) =====
+// ===== Цвет полей =====
+if (padWhiteBtn) {
+  padWhiteBtn.onclick = () => {
+    padColor = '#ffffff';
+    padWhiteBtn.classList.add('active');
+    if (padBlackBtn) padBlackBtn.classList.remove('active');
+  };
+}
+if (padBlackBtn) {
+  padBlackBtn.onclick = () => {
+    padColor = '#000000';
+    padBlackBtn.classList.add('active');
+    if (padWhiteBtn) padWhiteBtn.classList.remove('active');
+  };
+}
+
+// ===== 1:1 / 3:4 / 4:5 — вписать фото целиком (без обрезки) =====
 function formatToRatio(ratioW, ratioH) {
   if (!baseImageData || !canvas || !ctx) return;
 
@@ -280,27 +299,34 @@ function formatToRatio(ratioW, ratioH) {
   const target = ratioW / ratioH;
   const current = srcW / srcH;
 
-  let cutX = 0;
-  let cutY = 0;
-  let cutW = srcW;
-  let cutH = srcH;
+  let outW, outH;
 
   if (current > target) {
-    // слишком широкое — режем по бокам
-    cutW = Math.round(srcH * target);
-    cutX = Math.round((srcW - cutW) / 2);
-  } else if (current < target) {
-    // слишком высокое — режем сверху и снизу
-    cutH = Math.round(srcW / target);
-    cutY = Math.round((srcH - cutH) / 2);
+    // фото шире → поля сверху и снизу
+    outW = srcW;
+    outH = Math.round(srcW / target);
+  } else {
+    // фото выше → поля слева и справа
+    outH = srcH;
+    outW = Math.round(srcH * target);
   }
 
-  const cropped = ctx.getImageData(cutX, cutY, cutW, cutH);
-  canvas.width = cutW;
-  canvas.height = cutH;
-  ctx.putImageData(cropped, 0, 0);
-  baseImageData = ctx.getImageData(0, 0, cutW, cutH);
+  const temp = document.createElement('canvas');
+  temp.width = srcW;
+  temp.height = srcH;
+  temp.getContext('2d').putImageData(baseImageData, 0, 0);
 
+  canvas.width = outW;
+  canvas.height = outH;
+
+  ctx.fillStyle = padColor;
+  ctx.fillRect(0, 0, outW, outH);
+
+  const x = Math.round((outW - srcW) / 2);
+  const y = Math.round((outH - srcH) / 2);
+  ctx.drawImage(temp, x, y);
+
+  baseImageData = ctx.getImageData(0, 0, outW, outH);
   resetSliders();
   endCropMode();
 }
@@ -309,7 +335,7 @@ if (ratio11) ratio11.onclick = () => formatToRatio(1, 1);
 if (ratio34) ratio34.onclick = () => formatToRatio(3, 4);
 if (ratio45) ratio45.onclick = () => formatToRatio(4, 5);
 
-// ===== Круг / Скругление (прозрачный фон) =====
+// ===== Круг / Скругление =====
 function applyRoundedMask(kind) {
   if (!baseImageData || !canvas || !ctx) return;
 
